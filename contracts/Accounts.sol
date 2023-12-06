@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 contract Accounts {
-    address private owner;
+    address public owner;
 
     enum AccountType {
         USER,
@@ -17,7 +17,7 @@ contract Accounts {
     }
 
     mapping(address => Account) private accountStore;
-    uint256 numAccounts = 0;
+    uint256 public numAccounts = 0;
 
     constructor() {
         owner = msg.sender;
@@ -30,27 +30,39 @@ contract Accounts {
     }
 
     modifier onlyOwner() {
-        require(msg.sender == owner);
+        require(msg.sender == owner, "Sender must be Owner");
         _;
     }
 
     modifier onlyAdmin() {
-        require(accountStore[msg.sender].accountType == AccountType.ADMIN);
+        require(
+            accountStore[msg.sender].accountType == AccountType.ADMIN,
+            "Sender must be Admin"
+        );
         _;
     }
 
     modifier isUser(address address_) {
-        require(accountStore[address_].accountType == AccountType.USER);
+        require(
+            accountStore[address_].accountType == AccountType.USER,
+            "Sender must be User"
+        );
         _;
     }
 
     modifier isModerator(address address_) {
-        require(accountStore[address_].accountType == AccountType.MODERATOR);
+        require(
+            accountStore[address_].accountType == AccountType.MODERATOR,
+            "Sender must be Moderator"
+        );
         _;
     }
 
     modifier isNotAdmin(address address_) {
-        require(accountStore[address_].accountType != AccountType.ADMIN);
+        require(
+            accountStore[address_].accountType != AccountType.ADMIN,
+            "Sender must not be Admin"
+        );
         _;
     }
 
