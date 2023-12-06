@@ -2,10 +2,10 @@
 pragma solidity ^0.8.0;
 
 contract TrustScore {
-    address owner;
+    address public owner;
     mapping(address => uint256) approvedAddresses;
-    uint256 defaultTrustScore;
-    Range defaultRange = Range(0, 500);
+    uint256 public defaultTrustScore;
+    Range public defaultRange = Range(0, 500);
 
     struct Range {
         // inclusive
@@ -57,20 +57,28 @@ contract TrustScore {
         _;
     }
 
+    modifier outOfRange(uint256 score) {
+        require(
+            score <= defaultRange.ceil && score >= defaultRange.floor,
+            "Out of default range"
+        );
+        _;
+    }
+
     function approveAddress(address address_) public onlyOwner {
         approvedAddresses[address_] = 1;
     }
 
-    function setDefaultTrustScore(uint256 newDefaultScore) public onlyApproved {
-        defaultTrustScore = newDefaultScore;
+    function setDefaultTrustScore(
+        uint256 score
+    ) public onlyApproved outOfRange(score) {
+        defaultTrustScore = score;
     }
 
     function setTrustScore(
         address address_,
         uint256 score
-    ) public onlyApproved {
-        require(score <= defaultRange.ceil && score >= defaultRange.floor);
-
+    ) public onlyApproved outOfRange(score) {
         Trust memory trust;
         trust.score = score;
 
