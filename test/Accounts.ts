@@ -11,15 +11,10 @@ describe("Accounts contract test", function () {
   }
 
   describe("Deployment", function () {
-    it("one account should be present", async function () {
+    it("owner account should be present", async function () {
       const { accounts, owner } = await loadFixture(accountsFixture);
 
       expect(await accounts.numAccounts()).equal(1);
-    });
-
-    it("the account is owner", async function () {
-      const { accounts, owner } = await loadFixture(accountsFixture);
-
       expect(await accounts.owner()).equals(owner.address);
     });
   });
