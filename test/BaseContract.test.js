@@ -299,8 +299,8 @@ describe("BaseContract", async () => {
     });
 
     it ("Getter check", async () => {
-        await expect(baseContract.connect(user1).getGeneralRepo(8))
-            .to.be.revertedWith("You are not approved to execute this function!");
+        await expect(baseContract.connect(user3).getGeneralRepo(8))
+            .to.be.revertedWith("You are not authorized to execute this function!");
 
         const getGeneralRepo = await baseContract.getGeneralRepo(1);
         expect(getGeneralRepo[0]).to.equal(1);

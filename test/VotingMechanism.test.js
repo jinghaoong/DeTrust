@@ -265,4 +265,24 @@ describe("VotingMechanism", async () => {
         expect(finalTrustScore2).to.equal(448);
 
     });
+
+    it ("Setter check", async () => {
+        await expect(votingMechanism.connect(owner).setTimeRange(7 * 24 * 3600, 5 * 24 * 3600))
+            .to.be.revertedWith("Invalid time range!");
+
+        const setTimeRange = await votingMechanism.connect(owner).setTimeRange(5 * 24 * 3600, 9 * 24 * 3600);
+        expect(setTimeRange).to.emit(votingMechanism, "UpdateTimeRange").withArgs(5 * 24 * 3600, 9 * 24 * 3600);
+
+        await expect(votingMechanism.connect(user1).setMinimumTimeFrame(7 * 24 * 3600))
+            .to.be.revertedWith("You are not the owner!");
+        
+        const setMinimumTimeFrame = await votingMechanism.connect(owner).setMinimumTimeFrame(7 * 24 * 3600);
+        expect(setMinimumTimeFrame).to.emit(votingMechanism, "UpdateMinTimeFrame").withArgs(7 * 24 * 3600);
+
+        await expect(votingMechanism.connect(user1).setVerificationCutOffTime(7 * 24 * 3600))
+            .to.be.revertedWith("You are not the owner!");
+        
+        const setVerificationCutOffTime = await votingMechanism.connect(owner).setVerificationCutOffTime(30 * 24 * 3600);
+        expect(setVerificationCutOffTime).to.emit(votingMechanism, "UpdateVerificationMaxTime").withArgs(30 * 24 * 3600);
+    });
 });

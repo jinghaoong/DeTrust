@@ -92,7 +92,12 @@ contract BaseContract {
         
         deTrustToken.transferFrom(_walletPayee, address(this), amountPayee);
         deTrustToken.transferFrom(_walletPayer, address(this), amountPayer);
-        deTrustToken.approve(voting, amountPayee.add(amountPayer).add(500));
+
+        {
+        uint256 currentAllowance = deTrustToken.allowance(address(this), voting);
+        currentAllowance = currentAllowance.add((amountPayee.add(amountPayer)).mul(4));
+        deTrustToken.approve(voting, currentAllowance);
+        }
         _;
     }
 
@@ -237,7 +242,7 @@ contract BaseContract {
         emit WalletSet(_user);
     }
 
-    function getGeneralRepo(uint256 _contractId) public view approvedOnly returns(ContractUtility.BasicProperties memory) {
+    function getGeneralRepo(uint256 _contractId) public view approvedOrInvolved(_contractId) returns(ContractUtility.BasicProperties memory) {
         return generalRepo[_contractId];
     }
 

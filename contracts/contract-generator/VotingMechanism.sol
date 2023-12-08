@@ -13,6 +13,7 @@ contract VotingMechanism {
     DeTrustToken deTrustToken;
     TrustScore trustScore;
 
+    address owner;
     uint256 minimumTimeFrame = 1 days;
     uint256 verificationCutOffTime = 2 days;
 
@@ -20,6 +21,7 @@ contract VotingMechanism {
         base = _base;
         deTrustToken = _deTrustToken;
         trustScore = _trustScore;
+        owner = msg.sender;
     }
 
     mapping(uint256 => address[]) contractVerifyList;
@@ -29,6 +31,9 @@ contract VotingMechanism {
     event VerificationResolved(uint256 indexed _contractId, ContractUtility.VerificationState _vstate);
     event PassedVerification(uint256 _contractId);
     event FailedVerification(uint256 _contractId);
+    event UpdateMinTimeFrame(uint256 _minTime);
+    event UpdateVerificationMaxTime(uint256 _maxTime);
+    event UpdateTimeRange(uint256 _minTime, uint256 _maxTime);
 
     modifier isSigned(uint256 _contractId) {
         require(base.isSigned(_contractId), "Contract is not completely signed yet!");
@@ -37,6 +42,11 @@ contract VotingMechanism {
 
     modifier notFreeze(uint256 _contractId) {
         require(base.isActive(_contractId), "The contract is inactivated!");
+        _;
+    }
+
+    modifier ownerOnly() {
+        require(msg.sender == owner, "You are not the owner!");
         _;
     }
 
@@ -53,11 +63,13 @@ contract VotingMechanism {
             require(block.timestamp - properties.verificationStart <= verificationCutOffTime, 
                 "Verification time is over!");
 
-            bool verifierExceeded = block.timestamp - properties.verificationStart > minimumTimeFrame && 
+            bool verifierExceeded1 = block.timestamp - properties.verificationStart > minimumTimeFrame && 
                     properties.legitAmount.add(properties.fraudAmount) < properties.verifierNeeded;
+            
+            bool verifierExceeded2 = block.timestamp - properties.verificationStart <= minimumTimeFrame &&
+                    properties.legitAmount.add(properties.fraudAmount) < properties.verifierNeeded * 2;
 
-            require(block.timestamp - properties.verificationStart <= minimumTimeFrame ||
-                verifierExceeded, "Verifier amount exceeded!");
+            require(verifierExceeded1 || verifierExceeded2, "Verifier amount exceeded!");
         }
         _;
     }
@@ -194,5 +206,24 @@ contract VotingMechanism {
         }
 
         emit VerificationResolved(_contractId, properties.isVerified);
+    }
+
+    function setMinimumTimeFrame(uint256 _newMin) public ownerOnly {
+        require(_newMin < verificationCutOffTime, "The min time is longer than the cutoff time!");
+        minimumTimeFrame = _newMin; 
+        emit UpdateMinTimeFrame(_newMin);
+    }
+
+    function setVerificationCutOffTime(uint256 _newMax) public ownerOnly {
+        require(_newMax > minimumTimeFrame, "The max time is shorter than the min time!");
+        verificationCutOffTime = _newMax;
+        emit UpdateVerificationMaxTime(_newMax);
+    }
+
+    function setTimeRange(uint256 _min, uint256 _max) public ownerOnly {
+        require(_min < _max, "Invalid time range!");
+        minimumTimeFrame = _min;
+        verificationCutOffTime = _max;
+        emit UpdateTimeRange(_min, _max);
     }
 }
