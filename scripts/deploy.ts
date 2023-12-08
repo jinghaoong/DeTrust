@@ -1,26 +1,74 @@
 import { ethers } from "hardhat";
 
 async function main() {
-  const currentTimestampInSeconds = Math.round(Date.now() / 1000);
-  const unlockTime = currentTimestampInSeconds + 60;
 
-  const lockedAmount = ethers.parseEther("0.001");
+  const [deployer] = await ethers.getSigners();
+  console.log("Deploying contracts with the account:", await deployer.getAddress());  
 
-  const lock = await ethers.deployContract("Lock", [unlockTime], {
-    value: lockedAmount,
-  });
+  const accounts = await ethers.deployContract("Accounts");
 
-  await lock.waitForDeployment();
+  const deTrustParams = [1000000000];
+  const deTrustToken = await ethers.deployContract("DeTrustToken", deTrustParams);
 
-  console.log(
-    `Lock with ${ethers.formatEther(
-      lockedAmount
-    )}ETH and unlock timestamp ${unlockTime} deployed to ${lock.target}`
-  );
+  const trustScoreParams = [200];
+  const trustScore = await ethers.deployContract("TrustScore", trustScoreParams);
+
+  await accounts.waitForDeployment();
+  await deTrustToken.waitForDeployment();
+  await trustScore.waitForDeployment();
+
+  const trustScoreAddress = await trustScore.getAddress();
+  const deTrustTokenAddress = await deTrustToken.getAddress();
+
+  console.log("Accounts deployed to:", await accounts.getAddress());
+  console.log("TrustScore deployed to:", trustScoreAddress);
+  console.log("DeTrustToken deployed to:", deTrustTokenAddress);
+
+  const contractUtility = await ethers.getContractFactory("ContractUtility");
+  const contractUtilityInstance = await contractUtility.deploy();
+  await contractUtilityInstance.waitForDeployment();
+
+  console.log("ContractUtility deployed to:", await contractUtilityInstance.getAddress());
+
+  const baseContractParams = [trustScoreAddress, deTrustTokenAddress];
+  const baseContract = await ethers.deployContract("BaseContract", baseContractParams);
+  await baseContract.waitForDeployment();
+
+  const baseContractAddress = await baseContract.getAddress();
+
+  console.log("BaseContract deployed to:", baseContractAddress);
+
+  const votingMechanismParams = [baseContractAddress, deTrustTokenAddress, trustScoreAddress];  
+  const baseAsParams = [baseContractAddress];
+
+  const votingMechanism = await ethers.deployContract("VotingMechanism", votingMechanismParams);
+  const signingMechanism = await ethers.deployContract("SigningMechanism", baseAsParams);
+  const communicationChannel = await ethers.deployContract("CommunicationChannel", baseAsParams);
+
+  await votingMechanism.waitForDeployment();
+  await signingMechanism.waitForDeployment();
+  await communicationChannel.waitForDeployment();
+
+  const votingMechanismAddress = await votingMechanism.getAddress();
+  const signingMechanismAddress = await signingMechanism.getAddress();
+  const communicationChannelAddress = await communicationChannel.getAddress();
+
+  console.log("VotingMechanism deployed to:", votingMechanismAddress);
+  console.log("SigningMechanism deployed to:", signingMechanismAddress);
+  console.log("CommunicationChannel deployed to:", communicationChannelAddress);
+
+  await deTrustToken.setApproval(baseContractAddress);
+  await deTrustToken.setApproval(votingMechanismAddress);  
+  await trustScore.approveAddress(baseContractAddress);
+  await trustScore.approveAddress(votingMechanismAddress);
+  await baseContract.setApproval(votingMechanismAddress);  
+  await baseContract.setVotingAccess(votingMechanismAddress);  
+  await baseContract.setApproval(signingMechanismAddress);  
+  await baseContract.setApproval(communicationChannelAddress);
+
+  console.log("Approvals set");
 }
 
-// We recommend this pattern to be able to use async/await everywhere
-// and properly handle errors.
 main().catch((error) => {
   console.error(error);
   process.exitCode = 1;

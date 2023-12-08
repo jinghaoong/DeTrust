@@ -9,7 +9,7 @@ contract CommunicationChannel {
 
     mapping(uint256 => string[]) messageLog;
 
-    event MessageSent(uint256 indexed _contractId, address indexed _sender);
+    event MessageSent(uint256 indexed _contractId, address indexed _sender, string _message);
 
     constructor(BaseContract _base) {
         base = _base;
@@ -22,7 +22,7 @@ contract CommunicationChannel {
 
     modifier onlyInvolved(uint256 _contractId) {
         require(base.isInvolved(_contractId, msg.sender), 
-            "You are not invloved in the contract!");
+            "You are not involved in the contract!");
         _;
     }
 
@@ -39,12 +39,12 @@ contract CommunicationChannel {
             messageLog[_contractId].push(string(abi.encodePacked('Payee', ': ', _message)));
         }
 
-        emit MessageSent(_contractId, msg.sender);
+        emit MessageSent(_contractId, msg.sender, _message);
         
     }
 
     // get all messages in the message log for a certain contract by invlovers only
-    function retriveMessage(uint256 _contractId) public view 
+    function retrieveMessage(uint256 _contractId) public view 
         onlyInvolved(_contractId) returns (string memory) {
         string memory messages = "";
 

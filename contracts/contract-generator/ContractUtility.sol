@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 import "../dispute-resolution-v1/Dispute.sol";
-import "../TrustScore.sol";
 import "./intellectual-property/LicenseOwningContract.sol";
 
 /**
@@ -9,7 +8,7 @@ import "./intellectual-property/LicenseOwningContract.sol";
  * @dev This contract contains all the utility functions for the contracts.
  *
  * It contains:
-    * Enumerations for contract types, dispute types, consensus, and tiers.
+    * Enumerations for contract types, dispute types, and tiers.
     * Structs for common, future, option, bond, fund, stock, lend-borrow, simple payment, 
       smart voucher, content licensing, lease, purchase, and service contracts, with some
       related enumerations.
@@ -18,7 +17,14 @@ import "./intellectual-property/LicenseOwningContract.sol";
  */
 
 library ContractUtility {
-    enum ContractState { DRAFT, SIGNED, INPROGRESS, DISPUTED, COMPLETED, VOIDED }
+    enum ContractState {
+        DRAFT,
+        SIGNED,
+        INPROGRESS,
+        DISPUTED,
+        COMPLETED,
+        VOIDED
+    }
 
     enum ContractType {
         COMMON,
@@ -41,7 +47,11 @@ library ContractUtility {
         V1
     }
 
-    enum VerificationState { PENDING, LEGITIMATE, FRAUDULENT }
+    enum VerificationState {
+        PENDING,
+        LEGITIMATE,
+        FRAUDULENT
+    }
 
     struct Signature {
         address payer;
@@ -63,14 +73,16 @@ library ContractUtility {
         uint8 verifierNeeded;
         uint256 legitAmount;
         uint256 fraudAmount;
+        bool completed;
+        uint256 verificationStart;
     }
 
     struct ContractRepoInput {
         address _contractAddress;
         ContractUtility.ContractType _contractType;
-        ContractUtility.DisputeType _dispute; 
-        address _payee; 
-        address _payer; 
+        ContractUtility.DisputeType _dispute;
+        address _payee;
+        address _payer;
         address _walletPayee;
         address _walletPayer;
     }
@@ -87,7 +99,11 @@ library ContractUtility {
         address payable[] payee;
     }
 
-    enum DerivativeState{ PENDING, ACTIVE, EXPIRED }
+    enum DerivativeState {
+        PENDING,
+        ACTIVE,
+        EXPIRED
+    }
 
     struct Future {
         address payable seller;
@@ -102,7 +118,10 @@ library ContractUtility {
         string description;
     }
 
-    enum OptionType { CALL, PUT }
+    enum OptionType {
+        CALL,
+        PUT
+    }
 
     struct Option {
         address payable optionSeller; // short position
@@ -117,7 +136,11 @@ library ContractUtility {
         uint256 optionPremium;
     }
 
-    enum SecuritiesState { ISSUED, ACTIVE, REDEEMED }
+    enum SecuritiesState {
+        ISSUED,
+        ACTIVE,
+        REDEEMED
+    }
 
     struct Bond {
         address payable issuer;
@@ -166,9 +189,9 @@ library ContractUtility {
     struct LendBorrow {
         address payable borrower;
         address payable lender;
-        uint256 contractDuration; 
-        uint256 amount; 
-        uint256 releaseTime; 
+        uint256 contractDuration;
+        uint256 amount;
+        uint256 releaseTime;
         uint256 interestRate;
     }
 
@@ -180,8 +203,14 @@ library ContractUtility {
         string description;
     }
 
-    enum VoucherType { DISCOUNT, GIFT }
-    enum VoucherState { ACTIVE, REDEEMED }
+    enum VoucherType {
+        DISCOUNT,
+        GIFT
+    }
+    enum VoucherState {
+        ACTIVE,
+        REDEEMED
+    }
 
     struct SmartVoucher {
         address issuer;
@@ -192,9 +221,13 @@ library ContractUtility {
         VoucherState state;
         uint256 value;
         uint256 expiryDate;
-    } 
+    }
 
-    enum LicenseState{ PENDING, ACTIVE, EXPIRED }
+    enum LicenseState {
+        PENDING,
+        ACTIVE,
+        EXPIRED
+    }
 
     struct ContentLicensing {
         address payable owner;
@@ -206,7 +239,11 @@ library ContractUtility {
         uint256 endDate;
     }
 
-    enum LeaseState { PENDING, ACTIVE, TERMINATED }
+    enum LeaseState {
+        PENDING,
+        ACTIVE,
+        TERMINATED
+    }
 
     struct Lease {
         address payable landlord;
@@ -221,7 +258,7 @@ library ContractUtility {
         uint256 occupancyLimit;
         uint256 stampDuty;
     }
-    
+
     struct Purchase {
         address payable seller;
         address payable buyer;
@@ -231,7 +268,10 @@ library ContractUtility {
         uint256 deliveryDate;
     }
 
-    enum ServiceType { FREELANCE, SUBCRIPTION }
+    enum ServiceType {
+        FREELANCE,
+        SUBCRIPTION
+    }
 
     struct Service {
         ServiceType serviceType;
@@ -244,47 +284,4 @@ library ContractUtility {
         uint256 paymentDate;
     }
 
-    // get contract cost based on user tier
-    function getContractCost(TrustScore.TrustTier tier) public pure returns (uint8) {
-        // depends on user tier
-        if (tier == TrustScore.TrustTier.HIGHLYTRUSTED) {
-            return 20;
-        } else if (tier == TrustScore.TrustTier.TRUSTED) {
-            return 40;
-        } else if (tier == TrustScore.TrustTier.NEUTRAL) {
-            return 80;
-        } else if (tier == TrustScore.TrustTier.UNTRUSTED) {
-            return 100;
-        }
-        return 126;
-    }
-
-    // get verifier amount based on user tier
-    function getVerifierAmount(TrustScore.TrustTier tier) public pure returns (uint8) {
-        // depends on user tier
-        if (tier == TrustScore.TrustTier.HIGHLYTRUSTED) {
-            return 4;
-        } else if (tier == TrustScore.TrustTier.TRUSTED) {
-            return 8;
-        } else if (tier == TrustScore.TrustTier.NEUTRAL) {
-            return 10;
-        } else if (tier == TrustScore.TrustTier.UNTRUSTED) {
-            return 20;
-        }
-        return 120;
-    }
-
-    // get contract completion reward based on user tier
-    function getContractCompletionReward(TrustScore.TrustTier tier) public pure returns (uint8) {
-        if (tier == TrustScore.TrustTier.HIGHLYTRUSTED) {
-            return 1;
-        } else if (tier == TrustScore.TrustTier.TRUSTED) {
-            return 5;
-        } else if (tier == TrustScore.TrustTier.NEUTRAL) {
-            return 10;
-        } else if (tier == TrustScore.TrustTier.UNTRUSTED) {
-            return 15;
-        }
-        return 0;
-    }
 }

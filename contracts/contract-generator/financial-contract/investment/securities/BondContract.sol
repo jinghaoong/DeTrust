@@ -182,6 +182,5 @@ contract BondContract {
         details.bond.state = ContractUtility.SecuritiesState.REDEEMED;
         details.base.completeContract(details.contractId);
         emit EndBond(details.bond.redemptionValue.mul(details.bond.quantity));
-        selfdestruct(payable(address(this)));
     }
 }

@@ -86,7 +86,5 @@ contract smartVoucherContract {
         details.base.completeContract(details.contractId);
 
         emit ContractTerminated(details.smartVoucher.issuer, details.smartVoucher.redeemer, details.smartVoucher.value);
-
-        selfdestruct(payable(address(this)));
     }
 }

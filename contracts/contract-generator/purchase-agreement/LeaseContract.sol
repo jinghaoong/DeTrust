@@ -154,8 +154,6 @@ contract LeaseContract {
         emit TerminateRent(details.lease.landlord, details.lease.tenant, details.lease.rent.mul(details.cummulativePaymentCount));
 
         details.lease.state = ContractUtility.LeaseState.TERMINATED;
-
-        selfdestruct(payable(address(this)));
     }
 
     // extend the contract end date

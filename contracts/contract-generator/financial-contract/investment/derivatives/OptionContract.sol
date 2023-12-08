@@ -124,8 +124,6 @@ contract OptionContract {
         details.base.completeContract(details.contractId);
 
         emit VerifyTransfer();
-
-        selfdestruct(payable(address(this)));
     }
 
     // buyer of option exercise the details.option
@@ -163,8 +161,6 @@ contract OptionContract {
         details.base.completeContract(details.contractId);
 
         emit OptionCancelled();
-
-        selfdestruct(payable(address(this)));
     }
 
     // revert the details.option contract before paying the strike price
@@ -186,8 +182,6 @@ contract OptionContract {
 
         details.base.voidContract(details.contractId);
         emit OptionReverted();
-        
-        selfdestruct(payable(address(this)));
     }
 
 }

@@ -152,6 +152,5 @@ contract PurchaseBaseContract {
         }
 
         emit Terminated(details.purchase.buyer, details.purchase.seller, details.purchase.price);
-        selfdestruct(payable(address(this)));
     }
 }

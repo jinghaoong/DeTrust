@@ -13,6 +13,7 @@ contract VotingMechanism {
     DeTrustToken deTrustToken;
     TrustScore trustScore;
 
+    address owner;
     uint256 minimumTimeFrame = 1 days;
     uint256 verificationCutOffTime = 2 days;
 
@@ -20,13 +21,19 @@ contract VotingMechanism {
         base = _base;
         deTrustToken = _deTrustToken;
         trustScore = _trustScore;
+        owner = msg.sender;
     }
 
     mapping(uint256 => address[]) contractVerifyList;
     mapping(uint256 => address[]) contractFraudList;
 
-    event ContractVerified(uint256 indexed _contractId, address indexed _verifier);
+    event ContractVerified(uint256 indexed _contractId, address indexed _verifier, ContractUtility.VerificationState state);
     event VerificationResolved(uint256 indexed _contractId, ContractUtility.VerificationState _vstate);
+    event PassedVerification(uint256 _contractId);
+    event FailedVerification(uint256 _contractId);
+    event UpdateMinTimeFrame(uint256 _minTime);
+    event UpdateVerificationMaxTime(uint256 _maxTime);
+    event UpdateTimeRange(uint256 _minTime, uint256 _maxTime);
 
     modifier isSigned(uint256 _contractId) {
         require(base.isSigned(_contractId), "Contract is not completely signed yet!");
@@ -38,62 +45,46 @@ contract VotingMechanism {
         _;
     }
 
+    modifier ownerOnly() {
+        require(msg.sender == owner, "You are not the owner!");
+        _;
+    }
+
     // verification functions
 
-    /**
-     * @dev Modifier to check if the verification time limit is passed.
-     * @param _contractId The contract id to be verified.
-     * 
-     * Requirements:
-        * The contract must be not verified.
-        * The contract could be verified if the minimun verification time limit has not passed.
-        * The contract could be verified if the minimun verification time limit has passed 
-          and the verifier amount is not exceeded 
-          and the maximum verification time limit has not passed.
-     */
     modifier verifyAllowed(uint256 _contractId) {
 
         ContractUtility.BasicProperties memory properties = base.getGeneralRepo(_contractId);
 
         require(properties.isVerified == ContractUtility.VerificationState.PENDING, 
             "Contract is already verified!");
+        
+        unchecked {
+            require(block.timestamp - properties.verificationStart <= verificationCutOffTime, 
+                "Verification time is over!");
 
-        require(block.timestamp - properties.creationTime <= verificationCutOffTime, 
-            "Verification time is over!");
+            bool verifierExceeded1 = block.timestamp - properties.verificationStart > minimumTimeFrame && 
+                    properties.legitAmount.add(properties.fraudAmount) < properties.verifierNeeded;
+            
+            bool verifierExceeded2 = block.timestamp - properties.verificationStart <= minimumTimeFrame &&
+                    properties.legitAmount.add(properties.fraudAmount) < properties.verifierNeeded * 2;
 
-        bool verifierExceeded = block.timestamp - properties.creationTime > minimumTimeFrame && 
-                properties.legitAmount.add(properties.fraudAmount) < 
-                properties.verifierNeeded;
-
-        require(block.timestamp - properties.creationTime <= minimumTimeFrame ||
-            verifierExceeded, "Verifier amount exceeded!");
-
+            require(verifierExceeded1 || verifierExceeded2, "Verifier amount exceeded!");
+        }
         _;
     }
 
-    /**
-     * @dev Modifier to check if the verification could be resolved.
-     * 
-     * Requirements:
-        * The contract must be not verified.
-        * The contract could be verified if the minimun verification time limit has passed
-          and the verifier amount is reached or exceeded.
-        * The contract could be verified if the maximum verification time limit has passed.
-     */
     modifier verificationCanBeResolved(uint256 _contractId) {
-        /*
-
         ContractUtility.BasicProperties memory properties = base.getGeneralRepo(_contractId);
 
         require(properties.isVerified == ContractUtility.VerificationState.PENDING, 
             "Contract is not available for verification!");
 
-        require(block.timestamp - properties.creationTime > verificationCutOffTime ||
-            (block.timestamp - properties.creationTime > minimumTimeFrame &&
-            (properties.legitAmount.add(properties.fraudAmount) >= 
-                properties.verifierNeeded)), 
-            "Verification is not availble yet!");
-            */
+        require(block.timestamp - properties.verificationStart > verificationCutOffTime ||
+            (block.timestamp - properties.verificationStart > minimumTimeFrame &&
+            (properties.legitAmount >= properties.verifierNeeded / 2)), 
+            "Resolve is not available yet!");
+            
         _;
     }
 
@@ -121,12 +112,12 @@ contract VotingMechanism {
             CommonContract common = CommonContract(base.getAddressRepo(_contractId));
             require(!common.isPayer(msg.sender) && !common.isPayee(msg.sender), 
                 "You are involved in this contract!");
+
         }
 
         require(trustScore.getTrustTier(msg.sender) != TrustScore.TrustTier.UNTRUSTED, 
             "Insufficient trust score!");
-        require(deTrustToken.balanceOf(_wallet) >= 5, 
-            "Insufficient token to vote!");
+        require(deTrustToken.balanceOf(_wallet) >= 5, "Insufficient token to vote!");
         _;
     }
 
@@ -135,6 +126,8 @@ contract VotingMechanism {
     function verifyContract(uint256 _contractId, ContractUtility.VerificationState _vstate, 
         address _wallet) public notFreeze(_contractId) isSigned(_contractId) verifyAllowed(_contractId) 
         notInvolved(_contractId, _wallet) returns (ContractUtility.VerificationState) {
+
+        require(_vstate != ContractUtility.VerificationState.PENDING, "Invalid verification option!");
         
         base.setWalletMapping(msg.sender, _wallet);
 
@@ -150,19 +143,21 @@ contract VotingMechanism {
 
         base.setGeneralRepo(_contractId, properties);
 
-        deTrustToken.mintFor(_wallet, 10);
+        deTrustToken.transferFrom(address(base), _wallet, 10);
 
-        emit ContractVerified(_contractId, msg.sender);
+        emit ContractVerified(_contractId, msg.sender, _vstate);
 
-        if (block.timestamp - properties.creationTime > minimumTimeFrame) {
+        if (block.timestamp - properties.verificationStart > minimumTimeFrame) {
             if (properties.legitAmount >= properties.verifierNeeded / 2) {
                 properties.isVerified = ContractUtility.VerificationState.LEGITIMATE;
                 base.setGeneralRepo(_contractId, properties);
+                emit PassedVerification(_contractId);
                 return ContractUtility.VerificationState.LEGITIMATE;
 
             } else if (properties.fraudAmount >= properties.verifierNeeded / 2) {
                 properties.isVerified = ContractUtility.VerificationState.FRAUDULENT;
                 base.setGeneralRepo(_contractId, properties);
+                emit FailedVerification(_contractId);
                 return ContractUtility.VerificationState.FRAUDULENT;
             }
         }
@@ -170,16 +165,6 @@ contract VotingMechanism {
         return ContractUtility.VerificationState.PENDING;
     }
 
-    /**
-     * @dev Resolve the verification of the contract.
-     * @param _contractId The contract id to be verified.
-     *
-     * Requirements:
-        * The true verifier will be rewarded with 10 DTRs.
-        * The false verifier will be deducted with 5 DTRs and 1 trust score.
-        * FRAUDULENT:
-            * The payer and the payee will be deducted with 500 DTRs and 2 trust scores.
-     */
     function resolveVerification(uint256 _contractId) public notFreeze(_contractId) 
         isSigned(_contractId) verificationCanBeResolved(_contractId) {
 
@@ -188,8 +173,10 @@ contract VotingMechanism {
         if (properties.isVerified == ContractUtility.VerificationState.PENDING) {
             if (properties.legitAmount >= properties.fraudAmount) {
                 properties.isVerified = ContractUtility.VerificationState.LEGITIMATE;
+                emit PassedVerification(_contractId);
             } else {
                 properties.isVerified = ContractUtility.VerificationState.FRAUDULENT;
+                emit FailedVerification(_contractId);
             }
         }
 
@@ -215,8 +202,28 @@ contract VotingMechanism {
                 deTrustToken.burnFor(base.getWalletAddress(contractVerifyList[_contractId][i]), 100);
                 trustScore.decreaseTrustScore(contractVerifyList[_contractId][i], 1);
             }
+
         }
 
         emit VerificationResolved(_contractId, properties.isVerified);
+    }
+
+    function setMinimumTimeFrame(uint256 _newMin) public ownerOnly {
+        require(_newMin < verificationCutOffTime, "The min time is longer than the cutoff time!");
+        minimumTimeFrame = _newMin; 
+        emit UpdateMinTimeFrame(_newMin);
+    }
+
+    function setVerificationCutOffTime(uint256 _newMax) public ownerOnly {
+        require(_newMax > minimumTimeFrame, "The max time is shorter than the min time!");
+        verificationCutOffTime = _newMax;
+        emit UpdateVerificationMaxTime(_newMax);
+    }
+
+    function setTimeRange(uint256 _min, uint256 _max) public ownerOnly {
+        require(_min < _max, "Invalid time range!");
+        minimumTimeFrame = _min;
+        verificationCutOffTime = _max;
+        emit UpdateTimeRange(_min, _max);
     }
 }

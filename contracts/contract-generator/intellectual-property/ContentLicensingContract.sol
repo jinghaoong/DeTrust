@@ -136,6 +136,5 @@ contract ContentLicensingContract {
         details.contentLicensing.state = ContractUtility.LicenseState.EXPIRED;
 
         emit ContractTerminated(details.contentLicensing.licensee, details.contentLicensing.owner);
-        selfdestruct(payable(address(this)));
     }
 }

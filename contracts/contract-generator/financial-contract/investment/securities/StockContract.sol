@@ -192,6 +192,5 @@ contract StockContract {
         details.stock.state = ContractUtility.SecuritiesState.REDEEMED;
         details.base.completeContract(details.contractId);
         emit EndStockContract(details.stock.stockValue.mul(details.stock.shares));
-        selfdestruct(payable(address(this)));
     }
 }

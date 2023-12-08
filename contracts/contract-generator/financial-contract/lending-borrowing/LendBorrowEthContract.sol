@@ -150,8 +150,6 @@ contract LendBorrowEthContract {
         }
 
         emit Terminate(address(this));
-
-        selfdestruct(payable(address(this)));
     }
 
     // change final interest rate

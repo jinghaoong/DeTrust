@@ -113,7 +113,6 @@ contract ServiceBaseContract {
         details.base.completeContract(details.contractId);
 
         emit ContractTerminated(details.service.client, details.service.serviceProvider);
-        selfdestruct(payable(address(this)));
     }
 
 }

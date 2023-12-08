@@ -136,7 +136,6 @@ contract FutureContract {
         details.isReceived = true;
         details.base.completeContract(details.contractId);
         emit VerifyReceive();
-        selfdestruct(payable(address(this)));
     }
 
     // revert the future contract
@@ -148,7 +147,6 @@ contract FutureContract {
         details.future.buyer.transfer(details.currentAmount);
         details.base.voidContract(details.contractId);
         emit RevertFuture();
-        selfdestruct(payable(address(this)));
     }
 
 }

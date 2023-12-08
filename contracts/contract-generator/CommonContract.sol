@@ -14,7 +14,6 @@ import "./BaseContract.sol";
  */
 contract CommonContract {
     using SafeMath for uint256;
-    bool inactive = false;
 
     struct commonDetails {
         BaseContract base;
@@ -47,7 +46,8 @@ contract CommonContract {
     event ContractCreated(address indexed _contract, uint256 indexed _contractId);
     event ObligationDone(uint256 indexed _obligationId);
     event ObligationVerified(uint256 indexed _obligationId);
-    event ContractEnded(address indexed _contract, uint256 indexed _contractId);
+    event ContractEnded(address indexed _contract, uint256 indexed _contractId, address sender);
+    event InitiatorWithdrawn(uint256 _totalBalance);
 
     modifier contractReady() {
         require(details.base.isContractReady(details.contractId), "Contract is not ready!");
@@ -113,7 +113,7 @@ contract CommonContract {
     }
 
     modifier active() {
-        require(!inactive, "Contract is inactivated!");
+        require(details.base.isActive(details.contractId), "Contract is inactivated!");
         _;
     }
     
@@ -141,7 +141,7 @@ contract CommonContract {
 
     // resolve obligation with _obligationId by paying the correct amount
     // obligation is done by any payer
-    function resolveObligation(uint256 _obligationId) public payable contractReady active {
+    function resolveObligation(uint256 _obligationId) public payable contractReady {
         require(isPayer(msg.sender), "You are not the payer!");
         require(!details.obligationsDone[_obligationId], "This obligation has been done!");
         require(msg.value == details.common.paymentAmount[_obligationId], 
@@ -154,7 +154,7 @@ contract CommonContract {
 
     // verify a done obligation with _obligationId by the payee
     // verification is done by any payee
-    function verifyObligationDone(uint256 _obligationId) public contractReady active {
+    function verifyObligationDone(uint256 _obligationId) public contractReady {
         require(isPayee(msg.sender), "You are not the payee!");
         require(details.obligationsDone[_obligationId], "Obligation is not done yet!");
         
@@ -187,7 +187,9 @@ contract CommonContract {
 
     function initiatorWithdraw() external initiatorOnly contractCompleted active {
         require(address(this).balance > 0, "No balance to withdraw!");
-        details.initiator.transfer(address(this).balance);
+        uint256 totalBalance = address(this).balance;
+        details.initiator.transfer(totalBalance);
+        emit InitiatorWithdrawn(totalBalance);
     }
 
     // end contract and destruct the contract instance
@@ -199,12 +201,8 @@ contract CommonContract {
         require(address(this).balance == 0, "Contract balance is not withdrawn yet!");
 
         details.base.completeContract(details.contractId);
-
-        inactive = true;
-
-        emit ContractEnded(address(this), details.contractId);
+        emit ContractEnded(address(this), details.contractId, msg.sender);
         
-        selfdestruct(payable(address(this)));
     }
 
 }

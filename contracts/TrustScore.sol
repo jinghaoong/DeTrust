@@ -135,4 +135,60 @@ contract TrustScore {
     ) public view onlyApproved returns (TrustTier) {
         return trustStore[address_].tier;
     }
+
+    // get contract cost based on user tier
+    function getContractCost(TrustScore.TrustTier tier)
+        public
+        pure
+        returns (uint8)
+    {
+        // depends on user tier
+        if (tier == TrustScore.TrustTier.HIGHLYTRUSTED) {
+            return 20;
+        } else if (tier == TrustScore.TrustTier.TRUSTED) {
+            return 40;
+        } else if (tier == TrustScore.TrustTier.NEUTRAL) {
+            return 80;
+        } else if (tier == TrustScore.TrustTier.UNTRUSTED) {
+            return 100;
+        }
+        return 126;
+    }
+
+    // get verifier amount based on user tier
+    function getVerifierAmount(TrustScore.TrustTier tier)
+        public
+        pure
+        returns (uint8)
+    {
+        // depends on user tier
+        if (tier == TrustScore.TrustTier.HIGHLYTRUSTED) {
+            return 4;
+        } else if (tier == TrustScore.TrustTier.TRUSTED) {
+            return 8;
+        } else if (tier == TrustScore.TrustTier.NEUTRAL) {
+            return 10;
+        } else if (tier == TrustScore.TrustTier.UNTRUSTED) {
+            return 20;
+        }
+        return 120;
+    }
+
+    // get contract completion reward based on user tier
+    function getContractCompletionReward(TrustScore.TrustTier tier)
+        public
+        pure
+        returns (uint8)
+    {
+        if (tier == TrustScore.TrustTier.HIGHLYTRUSTED) {
+            return 1;
+        } else if (tier == TrustScore.TrustTier.TRUSTED) {
+            return 5;
+        } else if (tier == TrustScore.TrustTier.NEUTRAL) {
+            return 10;
+        } else if (tier == TrustScore.TrustTier.UNTRUSTED) {
+            return 15;
+        }
+        return 0;
+    }
 }

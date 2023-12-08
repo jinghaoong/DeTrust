@@ -107,7 +107,5 @@ contract SimplePaymentContract {
         }
 
         emit ContractTerminated(details.simplePayment.payer, details.simplePayment.payee, details.simplePayment.amount);
-
-        selfdestruct(payable(address(this)));
     }
 }

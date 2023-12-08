@@ -16,7 +16,7 @@ contract SigningMechanism {
 
     modifier onlyInvolved(uint256 _contractId) {
         require(base.isInvolved(_contractId, msg.sender), 
-            "You are not invloved in the contract!");
+            "You are not involved in the contract!");
         _;
     }
 
@@ -51,9 +51,15 @@ contract SigningMechanism {
             require(properties.signature._ad2 == bytes32(0), 
                 "You have already signed this contract!");
             properties.signature._ad2 = messageHash;
+        
         }
 
         properties.signature.isSigned = properties.signature.isSigned + 1;
+
+        if (properties.signature.isSigned == 2) {
+            properties.state = ContractUtility.ContractState.SIGNED;
+            properties.verificationStart = block.timestamp;
+        }
 
         base.setGeneralRepo(_contractId, properties);
 

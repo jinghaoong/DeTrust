@@ -192,6 +192,5 @@ contract MutualFundContract {
         details.fund.state = ContractUtility.SecuritiesState.REDEEMED;
         details.base.completeContract(details.contractId);
         emit EndFundContract(details.fund.fundValue.mul(details.fund.fundShares));
-        selfdestruct(payable(address(this)));
     }
 }
