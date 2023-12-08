@@ -6,8 +6,8 @@ import "../TrustScore.sol";
 contract Dispute {
     // Basic variables
     address contractAddress;
-    address initiator;
-    address respondent;
+    address public initiator;
+    address public respondent;
     string title;
     string description;
     Status disputeStatus;
@@ -25,7 +25,7 @@ contract Dispute {
     Vote[] initiatorVotes;
     VoteSum respondentVoteSum;
     Vote[] respondentVotes;
-    LossGain loseGainAmounts = LossGain(20, 20, 2);
+    LossGain loseGainAmounts = LossGain(0, 50);
 
     enum Status {
         INITIATED,
@@ -55,7 +55,6 @@ contract Dispute {
     struct LossGain {
         uint256 partyGain;
         uint256 partyLoss;
-        uint256 voterGain;
     }
 
     constructor(
@@ -179,7 +178,14 @@ contract Dispute {
             disputeStatus == Status.VOTING,
             "Dispute must be in voting status"
         );
+
         disputeStatus = Status.CLOSED;
+    }
+
+    // For testing purposes
+    function forceCloseVoting() public {
+        require(msg.sender == initiator);
+        closeVoting();
     }
 
     function concludeVotes() public {
@@ -194,14 +200,8 @@ contract Dispute {
         if (initiatorVoteSum.score != respondentVoteSum.score) {
             initiatorWin = (initiatorVoteSum.score > respondentVoteSum.score);
         } else {
-            // Tiebreak by earlier vote time
-            if (initiatorVoteSum.time != respondentVoteSum.time) {
-                initiatorWin = (initiatorVoteSum.time < respondentVoteSum.time);
-            } else {
-                // if same time, tiebreak with previous scores
-                initiatorWin = (initiatorVoteSum.prevScore >
-                    respondentVoteSum.prevScore);
-            }
+            initiatorWin = (initiatorVoteSum.prevScore >
+                respondentVoteSum.prevScore);
         }
 
         finalOutcome = initiatorWin ? initiatorOutcome : respondentOutcome;
@@ -209,11 +209,7 @@ contract Dispute {
 
         // Increase and Decrease trust scores for all parties and voters
         if (initiatorWin) {
-            trustScoreContract.increaseTrustScore(
-                initiator,
-                loseGainAmounts.partyGain
-            );
-
+            // Only subtract from the loser of the dispute
             trustScoreContract.decreaseTrustScore(
                 respondent,
                 loseGainAmounts.partyLoss
@@ -222,7 +218,7 @@ contract Dispute {
             for (uint i = 0; i < initiatorVotes.length; i++) {
                 trustScoreContract.increaseTrustScore(
                     initiatorVotes[i].user,
-                    loseGainAmounts.voterGain
+                    initiatorVotes[i].score
                 );
             }
 
@@ -233,11 +229,7 @@ contract Dispute {
                 );
             }
         } else {
-            trustScoreContract.increaseTrustScore(
-                respondent,
-                loseGainAmounts.partyGain
-            );
-
+            // Only subtract from the loser of the dispute
             trustScoreContract.decreaseTrustScore(
                 initiator,
                 loseGainAmounts.partyLoss
@@ -246,14 +238,14 @@ contract Dispute {
             for (uint x = 0; x < respondentVotes.length; x++) {
                 trustScoreContract.increaseTrustScore(
                     respondentVotes[x].user,
-                    loseGainAmounts.voterGain
+                    respondentVotes[x].score
                 );
             }
 
             for (uint y = 0; y < initiatorVotes.length; y++) {
                 trustScoreContract.decreaseTrustScore(
                     initiatorVotes[y].user,
-                    respondentVotes[y].score
+                    initiatorVotes[y].score
                 );
             }
         }
