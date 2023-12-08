@@ -62,6 +62,12 @@ contract VotingMechanism {
         require(trustScore.getTrustTier(msg.sender) != TrustScore.TrustTier.UNTRUSTED, 
             "You are not qualified to verify a contract!");
         
+        require(block.timestamp - properties.verificationStart <= verificationCutOffTime, 
+                "Verification time is over!");
+
+        require(trustScore.getTrustTier(msg.sender) != TrustScore.TrustTier.UNTRUSTED, 
+            "You are not qualified to verify a contract!");
+        
         unchecked {
             require(block.timestamp - properties.verificationStart <= verificationCutOffTime, 
                 "Verification time is over!");
