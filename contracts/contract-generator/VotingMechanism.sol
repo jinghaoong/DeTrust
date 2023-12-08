@@ -58,6 +58,9 @@ contract VotingMechanism {
 
         require(properties.isVerified == ContractUtility.VerificationState.PENDING, 
             "Contract is already verified!");
+
+        require(trustScore.getTrustTier(msg.sender) != TrustScore.TrustTier.UNTRUSTED, 
+            "You are not qualified to verify a contract!");
         
         unchecked {
             require(block.timestamp - properties.verificationStart <= verificationCutOffTime, 

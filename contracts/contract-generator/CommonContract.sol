@@ -42,6 +42,7 @@ contract CommonContract {
     }
     
     commonDetails public details;
+    address completeCheck;
 
     event ContractCreated(address indexed _contract, uint256 indexed _contractId);
     event ObligationDone(uint256 indexed _obligationId);
@@ -198,8 +199,10 @@ contract CommonContract {
     function endContract() public contractCompleted active {
         require(msg.sender == details.initiator || msg.sender == details.respondent, 
             "You are not involved in this contract!");
+        require(msg.sender != completeCheck, "You have completed this contract!");
         require(address(this).balance == 0, "Contract balance is not withdrawn yet!");
 
+        completeCheck = msg.sender;
         details.base.completeContract(details.contractId);
         emit ContractEnded(address(this), details.contractId, msg.sender);
         

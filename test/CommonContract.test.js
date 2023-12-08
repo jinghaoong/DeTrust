@@ -181,8 +181,13 @@ describe("CommonContract", async () => {
         .to.emit(commonContract, "ContractEnded").withArgs(commonContractAddress, 1, user1Address)
         .and.to.emit(baseContract, "ContractPendingComplete").withArgs(1);
 
-        const confirmComplete = await baseContract.connect(user2).completeContract(1);
-        expect(confirmComplete).to.emit(baseContract, "ContractCompleted").withArgs(1);
+        await expect(commonContract.connect(user1).endContract())
+            .to.be.revertedWith("You have completed this contract!");
+
+        const confirmComplete = await commonContract.connect(user2).endContract();
+        expect(confirmComplete)
+        .to.emit(commonContract, "ContractEnded").withArgs(commonContractAddress, 1, user2Address)
+        .and.to.emit(baseContract, "ContractCompleted").withArgs(1);
 
         const finalTrustScore1 = await trustScore.getTrustScore(user1Address);
         const finalTrustScore2 = await trustScore.getTrustScore(user2Address);

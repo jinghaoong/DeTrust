@@ -6,16 +6,16 @@ const web3 = require("web3");
 describe("VotingMechanism", async () => {
 
     let ownerAddress, user1Address, user2Address, user3Address, user4Address, user5Address, user6Address, user7Address;
-    let a1Address, a2Address, a3Address, a4Address, a5Address, a6Address;
+    let a1Address, a2Address, a3Address, a4Address, a5Address, a6Address, a7Address;
     let trustScoreAddress, deTrustTokenAddress, baseContractAddress, votingMechanismAddress, contractAddr;
     let trustScore, deTrustToken, baseContract, votingMechanism;
-    let owner, user1, user2, user3, user4, user5, user6, user7, a1, a2, a3, a4, a5, a6;
+    let owner, user1, user2, user3, user4, user5, user6, user7, a1, a2, a3, a4, a5, a6, a7;
 
     let creationTime, verificationStart, string1, string2;
     
     before(async () => {
 
-        [owner, user1, user2, user3, user4, user5, user6, user7, a1, a2, a3, a4, a5, a6] = await ethers.getSigners();
+        [owner, user1, user2, user3, user4, user5, user6, user7, a1, a2, a3, a4, a5, a6, a7] = await ethers.getSigners();
 
         ownerAddress = await owner.getAddress();
         user1Address = await user1.getAddress();
@@ -94,6 +94,7 @@ describe("VotingMechanism", async () => {
         a4Address = await a4.getAddress();
         a5Address = await a5.getAddress();
         a6Address = await a6.getAddress();
+        a7Address = await a7.getAddress();
 
         await trustScore.connect(owner).setTrustScore(a1Address, 450);
         await trustScore.connect(owner).setTrustScore(a2Address, 450);
@@ -101,6 +102,7 @@ describe("VotingMechanism", async () => {
         await trustScore.connect(owner).setTrustScore(a4Address, 450);
         await trustScore.connect(owner).setTrustScore(a5Address, 450);
         await trustScore.connect(owner).setTrustScore(a6Address, 450);
+        await trustScore.connect(owner).setTrustScore(a7Address, 20);
 
         await deTrustToken.connect(owner).mintFor(a1Address, 1020); 
         await deTrustToken.connect(owner).mintFor(a2Address, 1020);
@@ -134,6 +136,9 @@ describe("VotingMechanism", async () => {
         expect(initTokenBalance6).to.equal(600);
         expect(initTokenBalance7).to.equal(600);
         expect(initTokenBalanceBase).to.equal(580);
+
+        await expect(votingMechanism.connect(a7).verifyContract(1, 1, user1Address))
+            .to.be.revertedWith("You are not qualified to verify a contract!");
 
         const vote1 = await votingMechanism.connect(user3).verifyContract(1, 1, user3Address);
         expect(vote1).to.emit(votingMechanism, "VerifiedContract").withArgs(1, user3Address, 1);
